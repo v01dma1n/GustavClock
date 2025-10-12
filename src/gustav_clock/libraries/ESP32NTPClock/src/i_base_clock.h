@@ -1,8 +1,13 @@
 #ifndef I_BASE_CLOCK_H
 #define I_BASE_CLOCK_H
 
-#include "display_manager.h"
 #include "RTClib.h"
+
+// Forward-declare all classes that are used as references or pointers
+// in this interface file. This breaks circular header dependencies.
+class DisplayManager;
+class IDisplayDriver;
+// -----------------------
 
 // Forward-declare the weather interface
 class IWeatherClock;
@@ -31,3 +36,4 @@ public:
 };
 
 #endif // I_BASE_CLOCK_H
+

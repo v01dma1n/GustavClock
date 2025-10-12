@@ -11,29 +11,17 @@ ScrollingTextAnimation::ScrollingTextAnimation(std::string text, unsigned long s
 void ScrollingTextAnimation::setup(IDisplayDriver* display) {
     IAnimation::setup(display);
 
-    if (_dotsWithPreviousChar) {
-        // Pre-parse the text to separate characters and dots
-        for (size_t i = 0; i < _text.length(); ++i) {
-            if (_text[i] == '.') {
-                if (!_dotStates.empty()) {
-                    _dotStates.back() = true; // Apply the dot to the previous character
-                }
-            } else {
-                _parsedText += _text[i];
-                _dotStates.push_back(false);
-            }
-        }
-    } else {
-        _parsedText = _text;
-    }
-
+    // Use the robust parser from the base class
+    parseTextAndDots(_text, _dotsWithPreviousChar, _parsedText, _dotStates);
+    
+    // Start the text completely off-screen to the right
     _currentPosition = -_display->getDisplaySize();
 }
 
 bool ScrollingTextAnimation::isDone() {
-    // The animation is done when the start of the text has scrolled
-    // past the left edge of the display.
-    return _currentPosition >= (int)_parsedText.length() + _display->getDisplaySize();
+    // The animation is done when the START of the text has scrolled
+    // completely past the LEFT edge of the display.
+    return _currentPosition >= (int)_parsedText.length();
 }
 
 void ScrollingTextAnimation::update() {
@@ -44,21 +32,19 @@ void ScrollingTextAnimation::update() {
     unsigned long currentTime = millis();
     if (currentTime - _lastScrollTime >= _scrollDelay) {
         _lastScrollTime = currentTime;
-        // _display->clear();
+        
         int displaySize = _display->getDisplaySize();
 
         for (int i = 0; i < displaySize; ++i) {
             int textIndex = _currentPosition + i;
+            // Check if the calculated index is within the bounds of the parsed text
             if (textIndex >= 0 && textIndex < (int)_parsedText.length()) {
-                bool hasDot = _dotsWithPreviousChar ? _dotStates[textIndex] : false;
-                _display->setChar(i, _parsedText[textIndex], hasDot);
+                _display->setChar(i, _parsedText[textIndex], _dotStates[textIndex]);
             } else {
-                // Explicitly draw a space for the empty parts of the display.
+                // If it's outside the bounds, draw a blank space.
                 _display->setChar(i, ' ', false);
             }
         }
-
-        // _display->writeDisplay();
         _currentPosition++;
     }
 }

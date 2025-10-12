@@ -1,4 +1,5 @@
 #include "clock_fsm_manager.h"
+#include "display_manager.h"
 #include "sntp_client.h"
 #include "anim_scrolling_text.h"
 #include "anim_static_text.h"
@@ -81,7 +82,6 @@ void ClockFsmManager::on_enter_startup_anim() {
     Serial.println("ClockFsmManager::on_enter_startup_anim()");
     // This can be overridden by the specific clock implementation for a custom message
     auto startupMsg = std::make_unique<ScrollingTextAnimation>("LOADING...");
-    // auto startupMsg = std::make_unique<StaticTextAnimation>("LOADING...");
     _clock.getClock().setAnimation(std::move(startupMsg));
 }
 
@@ -89,8 +89,7 @@ void ClockFsmManager::on_enter_wifi_connect() {
     Serial.println("ClockFsmManager::on_enter_wifi_connect()");
     WiFi.setHostname(_clock.getAppName());
     WiFi.begin(_clock.getSsid(), _clock.getPassword());
-    auto connectingMsg = std::make_unique<ScrollingTextAnimation>("CONNECTING WIFI...");
-    // auto connectingMsg = std::make_unique<StaticTextAnimation>("CONNECTING WIFI...");
+    auto connectingMsg = std::make_unique<ScrollingTextAnimation>("CONNECTING TO WIFI...");
     _clock.getClock().setAnimation(std::move(connectingMsg));
 }
 
@@ -99,7 +98,6 @@ void ClockFsmManager::on_enter_ntp_sync() {
     // Use the new interface method
     setupSntp(_clock.getTimezone());
     auto syncingMsg = std::make_unique<ScrollingTextAnimation>("SYNCING TIME...");
-    // auto syncingMsg = std::make_unique<StaticTextAnimation>("SYNCING TIME...");
     _clock.getClock().setAnimation(std::move(syncingMsg));
 }
 

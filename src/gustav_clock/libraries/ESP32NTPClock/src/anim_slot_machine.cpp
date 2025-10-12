@@ -1,45 +1,47 @@
 #include "anim_slot_machine.h"
-
 #include <Arduino.h>
 
-
-SlotMachineAnimation::SlotMachineAnimation(std::string targetText, 
-                                           unsigned long lockDelay, 
-                                           unsigned long holdTime, 
-                                           unsigned long spinDelay, 
+SlotMachineAnimation::SlotMachineAnimation(std::string targetText,
+                                           unsigned long lockDelay,
+                                           unsigned long holdTime,
+                                           unsigned long spinDelay,
                                            bool dotsWithPreviousChar)
     : _targetText(targetText),
       _lockDelay(lockDelay),
       _holdTime(holdTime),
-      _spinDelay(spinDelay), // Initialize spinDelay
+      _spinDelay(spinDelay),
       _dotsWithPreviousChar(dotsWithPreviousChar),
       _lastLockTime(0),
-      _lastSpinTime(0),      // Initialize spin timer
+      _lastSpinTime(0),
       _lockedCount(0),
-      _lockingCompleteTime(0) {
-    _isLocked = nullptr;
-}
+      _lockingCompleteTime(0),
+      _finalFrameDrawn(false)
+{}
 
-SlotMachineAnimation::~SlotMachineAnimation() {
-    delete[] _isLocked;
-}
+// Destructor is empty because std::vector handles its own memory.
+SlotMachineAnimation::~SlotMachineAnimation() {}
 
 void SlotMachineAnimation::setup(IDisplayDriver* display) {
     IAnimation::setup(display);
-    int size = _display->getDisplaySize();
-
-    // Use the new, reliable parser from the base class
+    
     parseTextAndDots(_targetText, _dotsWithPreviousChar, _parsedText, _dotStates);
 
-    _currentText.resize(size, ' ');
+    // Initialize the vector to the correct size, with all values as 0 (false).
+    _isLocked.assign(_display->getDisplaySize(), 0);
 
-    delete[] _isLocked;
-    _isLocked = new bool[size];
-    for (int i = 0; i < size; ++i) {
-        _isLocked[i] = false;
-    }
+    // Reset all state variables to ensure the animation can be run multiple times
     _lastLockTime = millis();
+    _lastSpinTime = millis();
+    _lockedCount = 0;
+    _lockingCompleteTime = 0;
+    _finalFrameDrawn = false;
     randomSeed(analogRead(0));
+
+    int displaySize = _display->getDisplaySize();
+    for (int i = 0; i < displaySize; ++i) {
+        // All digits start as "spinning" (random numbers)
+        _display->setChar(i, random(0, 10) + '0', false);
+    }
 }
 
 bool SlotMachineAnimation::isDone() {
@@ -51,36 +53,47 @@ bool SlotMachineAnimation::isDone() {
 }
 
 void SlotMachineAnimation::update() {
+    if (_finalFrameDrawn) {
+        return;
+    }
+
+    if (isDone()) {
+        // Draw the final, correct text one last time before exiting.
+        for (int i = 0; i < _display->getDisplaySize(); ++i) {
+            _display->setChar(i, _parsedText[i], _dotStates[i]);
+        }
+        _finalFrameDrawn = true;
+        return;
+    }
+
     unsigned long currentTime = millis();
     if (currentTime - _lastSpinTime < _spinDelay) {
         return;
     }
     _lastSpinTime = currentTime;
 
-    if (isDone()) {
-        return;
-    }
-
-    int displaySize = _display->getDisplaySize();
-
-    // --- Locking Logic ---
-    bool lockingPhaseActive = _lockedCount < displaySize;
-    if (lockingPhaseActive && (currentTime - _lastLockTime >= _lockDelay)) {
+    // --- State Update Logic ---
+    bool isLockingPhase = _lockedCount < _display->getDisplaySize();
+    if (isLockingPhase && (currentTime - _lastLockTime >= _lockDelay)) {
         _lastLockTime = currentTime;
-        if (_lockedCount < displaySize) {
-            _isLocked[_lockedCount] = true;
+        if (_lockedCount < _isLocked.size()) {
+            _isLocked[_lockedCount] = 1; // Lock the next digit by setting to 1 (true)
             _lockedCount++;
-            if (_lockedCount == displaySize) {
-                _lockingCompleteTime = millis();
-            }
+        }
+
+        if (_lockedCount == _display->getDisplaySize()) {
+            _lockingCompleteTime = millis();
         }
     }
 
-    // --- Drawing Logic ---
+    // --- Atomic Drawing Logic (redraw every digit, every frame) ---
+    int displaySize = _display->getDisplaySize();
     for (int i = 0; i < displaySize; ++i) {
-        char charToWrite = _isLocked[i] ? _parsedText[i] : (random(0, 10) + '0');
-        bool hasDot = _dotStates[i];
-        _display->setChar(i, charToWrite, hasDot);
+        if (i < _isLocked.size() && _isLocked[i]) { // C++ treats 0 as false and non-zero as true
+            _display->setChar(i, _parsedText[i], _dotStates[i]);
+        } else {
+            _display->setChar(i, random(0, 10) + '0', false);
+        }
     }
 }
 

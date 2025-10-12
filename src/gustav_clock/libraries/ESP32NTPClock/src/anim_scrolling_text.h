@@ -22,7 +22,7 @@ private:
     bool _dotsWithPreviousChar;  
       
     std::string _parsedText;
-    std::vector<bool> _dotStates;    
+    std::vector<uint8_t> _dotStates;    
 };
 
 #endif // ANIM_SCROLLING_TEXT_H

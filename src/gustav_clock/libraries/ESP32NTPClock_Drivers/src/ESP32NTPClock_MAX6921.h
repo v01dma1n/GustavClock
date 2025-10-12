@@ -7,6 +7,7 @@
 class DispDriverMAX6921 : public IDisplayDriver {
 public:
     DispDriverMAX6921(int displaySize, int sclkPin, int misoPin, int mosiPin, int ssPin, int blankPin);
+    ~DispDriverMAX6921(); 
 
     // IDisplayDriver interface implementation
     void begin() override;
@@ -18,8 +19,10 @@ public:
     void writeDisplay() override;
     bool needsContinuousUpdate() const override;
 
+    unsigned long mapAsciiToSegment(char ascii_char, bool dot) override;
+    void setBuffer(const std::vector<unsigned long>& newBuffer) override;
+
 private:
-    unsigned long mapAsciiToSegment(char ascii_char);
     void spiCmd(unsigned long data);
 
     int _displaySize;
@@ -29,8 +32,6 @@ private:
     
     SPIClass* _spi;
     int _currentDigit;
-    int _multiplexStep;
-    unsigned long _lastMultiplexTime;    
 };
 
 #endif // ESP32NTPCLOCK_MAX6921_H

@@ -2,13 +2,14 @@
 #define DEBUG_H
 
 #include "Arduino.h"
-#include "gustav_app.h" 
+#include "gustav_types.h" 
 
 extern SemaphoreHandle_t serialMutex;
+extern AppLogLevel g_appLogLevel;
 
 #define LOGMSG(level, format, ...) \
     do { \
-        if (GustavClockApp::getInstance().getPrefs().config.logLevel >= level) { \
+        if (g_appLogLevel >= level) { \
             if (serialMutex != NULL && xSemaphoreTake(serialMutex, portMAX_DELAY) == pdTRUE) { \
                 Serial.printf(format "\n", ##__VA_ARGS__); \
                 xSemaphoreGive(serialMutex); \

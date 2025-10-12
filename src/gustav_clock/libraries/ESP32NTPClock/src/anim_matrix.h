@@ -26,7 +26,7 @@ private:
     
     // Parsed text and dot states
     std::string _parsedTargetText;
-    std::vector<bool> _dotState;
+    std::vector<uint8_t> _dotState;
 
     // Timing controls
     unsigned long _revealDelay;

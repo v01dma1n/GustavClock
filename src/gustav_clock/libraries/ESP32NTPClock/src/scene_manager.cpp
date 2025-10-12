@@ -89,14 +89,14 @@ void SceneManager::update() {
             }
         }
 
-        // --- TEMPORARY DEBUGGING ---
-        // This will show the text statically for 2 seconds.
-        ENC_LOG("Forcing StaticTextAnimation with text: '%s'", sceneText.c_str());
-        auto anim = std::make_unique<StaticTextAnimation>(sceneText);
-        _app.getClock().setAnimation(std::move(anim));
-        // --- END TEMPORARY DEBUGGING ---
+        // // --- TEMPORARY DEBUGGING ---
+        // // This will show the text statically for 2 seconds.
+        // ENC_LOG("Forcing StaticTextAnimation with text: '%s'", sceneText.c_str());
+        // auto anim = std::make_unique<StaticTextAnimation>(sceneText);
+        // _app.getClock().setAnimation(std::move(anim));
+        // // --- END TEMPORARY DEBUGGING ---
 
- /*        
+        
         // --- Create and set the animation with the prepared text ---
         if (newScene.animation_type == SLOT_MACHINE) {
             auto anim = std::make_unique<SlotMachineAnimation>(sceneText, newScene.anim_param_1, 2000, newScene.anim_param_2, newScene.dots_with_previous);
@@ -108,33 +108,34 @@ void SceneManager::update() {
             auto anim = std::make_unique<ScrollingTextAnimation>(sceneText, newScene.anim_param_1, newScene.dots_with_previous);
             _app.getClock().setAnimation(std::move(anim));
         }
-*/
+
         ENC_LOG("Scene: %s - %s", newScene.scene_name, sceneText.c_str());
 
     } else {
-        // --- Logic to update the display for the CURRENT scene (if it's static) ---
-        const DisplayScene& currentScene = _scenePlaylist[_currentSceneIndex];
 
-        // If the scene has an animation, its final frame should persist. Don't overwrite it.
-        if (currentScene.animation_type == SCROLLING ||
-            currentScene.animation_type == MATRIX ||
-            currentScene.animation_type == SLOT_MACHINE) {
-            return;
-        }
+        // // --- Logic to update the display for the CURRENT scene (if it's static) ---
+        // const DisplayScene& currentScene = _scenePlaylist[_currentSceneIndex];
 
-        // Only update static scenes (of which there are none currently, but this is good practice)
-        time_t now = _app.isRtcActive() ? _app.getRtc().now().unixtime() : time(0);
-        if (strcmp(currentScene.scene_name, "Time") == 0 || strcmp(currentScene.scene_name, "Date") == 0) {
-            _app.formatTime(buffer.data(), buffer.size(), currentScene.format_string, now);
-        } else {
-            float value = currentScene.getDataValue();
-            if (value == UNSET_VALUE) {
-                // Use snprintf for safety; it guarantees null termination.
-                snprintf(buffer.data(), buffer.size(), "NO DATA");
-            } else {
-                snprintf(buffer.data(), buffer.size(), currentScene.format_string, value);
-            }
-        }
-        _app.getDisplay().print(buffer.data(), currentScene.dots_with_previous);
+        // // If the scene has an animation, its final frame should persist. Don't overwrite it.
+        // if (currentScene.animation_type == SCROLLING ||
+        //     currentScene.animation_type == MATRIX ||
+        //     currentScene.animation_type == SLOT_MACHINE) {
+        //     return;
+        // }
+
+        // // Only update static scenes (of which there are none currently, but this is good practice)
+        // time_t now = _app.isRtcActive() ? _app.getRtc().now().unixtime() : time(0);
+        // if (strcmp(currentScene.scene_name, "Time") == 0 || strcmp(currentScene.scene_name, "Date") == 0) {
+        //     _app.formatTime(buffer.data(), buffer.size(), currentScene.format_string, now);
+        // } else {
+        //     float value = currentScene.getDataValue();
+        //     if (value == UNSET_VALUE) {
+        //         // Use snprintf for safety; it guarantees null termination.
+        //         snprintf(buffer.data(), buffer.size(), "NO DATA");
+        //     } else {
+        //         snprintf(buffer.data(), buffer.size(), currentScene.format_string, value);
+        //     }
+        // }
+        // _app.getDisplay().print(buffer.data(), currentScene.dots_with_previous);
     }
 }

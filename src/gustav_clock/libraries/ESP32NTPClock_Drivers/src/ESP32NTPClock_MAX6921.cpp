@@ -115,11 +115,15 @@ static const unsigned long FONT_MAP[] = {
 // --- Class Implementation ---
 
 DispDriverMAX6921::DispDriverMAX6921(int displaySize, int sclkPin, int misoPin, int mosiPin, int ssPin, int blankPin)
-    : _displaySize(displaySize), _blankPin(blankPin), _ssPin(ssPin), _currentDigit(0),
-      _multiplexStep(0), _lastMultiplexTime(0) {
-    _displayBuffer = new unsigned long[_displaySize](); // Allocate and zero-initialize buffer
+    : _displaySize(displaySize), _blankPin(blankPin), _ssPin(ssPin), _currentDigit(0) {
+    _displayBuffer = new unsigned long[_displaySize]();
     _spi = new SPIClass(VSPI);
     _spi->begin(sclkPin, misoPin, mosiPin, ssPin);
+}
+
+DispDriverMAX6921::~DispDriverMAX6921() {
+    delete[] _displayBuffer;
+    delete _spi;
 }
 
 void DispDriverMAX6921::begin() {
@@ -142,26 +146,28 @@ void DispDriverMAX6921::clear() {
     }
 }
 
-unsigned long DispDriverMAX6921::mapAsciiToSegment(char ascii_char) {
+unsigned long DispDriverMAX6921::mapAsciiToSegment(char ascii_char, bool dot) {
     char c = toupper(ascii_char);
-    // The font map starts at ASCII 32 (' ').
+    unsigned long segments = 0;
     if (c >= ' ' && c <= 'Z') {
-        return VFD_FONT_MAP[c - ' '];
+        segments = VFD_FONT_MAP[c - ' '];
     }
-    return 0; // Return blank for any character not in the font map.
+    if (dot) {
+        segments |= SEG_DOT;
+    }
+    return segments;
 }
-
 
 void DispDriverMAX6921::setChar(int position, char character, bool dot) {
     if (position < 0 || position >= _displaySize) return;
+    _displayBuffer[position] = mapAsciiToSegment(character, dot);
+}
 
-    // ENC_LOG("setChar - Pos: %d, Char: '%c', Dot: %s", position, character, dot ? "true" : "false");
-
-    unsigned long segments = mapAsciiToSegment(character);
-    if (dot) {
-        segments |= SEG_DOT; 
+void DispDriverMAX6921::setBuffer(const std::vector<unsigned long>& newBuffer) {
+    int sizeToCopy = std::min((int)newBuffer.size(), _displaySize);
+    for (int i = 0; i < sizeToCopy; ++i) {
+        _displayBuffer[i] = newBuffer[i];
     }
-    _displayBuffer[position] = segments;
 }
 
 void DispDriverMAX6921::setSegments(int position, uint16_t mask) {
@@ -191,51 +197,14 @@ void DispDriverMAX6921::spiCmd(unsigned long data) {
 }
 
 void DispDriverMAX6921::writeDisplay() {
-    // This function is called in the main loop to multiplex the display.
-    // It sends data for one digit at a time.
-    digitalWrite(_blankPin, HIGH); // Blank the display to prevent ghosting
-
-    // Combine the grid (digit select) and segment data and send via SPI
+    // This simple, blocking version is the most robust for software multiplexing.
+    digitalWrite(_blankPin, HIGH);
     spiCmd(GRIDS[_currentDigit] | _displayBuffer[_currentDigit]);
-    
-    digitalWrite(_blankPin, LOW); // Un-blank the display to light up the digit
-
-    // This delay is the crucial "on-time" for the digit. 1.5ms is a good starting point.
-    delayMicroseconds(1500);
-
-    // Move to the next digit for the next call
-    _currentDigit++;
-    if (_currentDigit >= _displaySize) {
-        _currentDigit = 0;
-    }
+    digitalWrite(_blankPin, LOW);
+    delayMicroseconds(1500); // Guarantees a 1.5ms on-time per digit.
+    _currentDigit = (_currentDigit + 1) % _displaySize;
 }
 
-/*
-void DispDriverMAX6921::writeDisplay() {
-    // This function is called continuously. We use micros() to ensure
-    // a consistent 0.5ms interval between steps.
-    unsigned long currentTime = micros();
-    if ((currentTime - _lastMultiplexTime) < 500) {
-        return; // run this every 0.5 millisecond 
-    }
-    _lastMultiplexTime = currentTime;
-
-    if (_multiplexStep == 0) { // Step 0: Send data while blanked
-        digitalWrite(_blankPin, HIGH); // Blank the display
-        spiCmd(GRIDS[_currentDigit] | _displayBuffer[_currentDigit]);
-
-        _currentDigit++;
-        if (_currentDigit >= _displaySize) {
-            _currentDigit = 0;
-        }
-        _multiplexStep = 1; // Move to the next step
-
-    } else { // Step 1: Un-blank the display to show the digit
-        digitalWrite(_blankPin, LOW); // Un-blank the display
-        _multiplexStep = 0; // Go back to the send step for the next digit
-    }
-}
-*/
 bool DispDriverMAX6921::needsContinuousUpdate() const {
     return true;
 }

@@ -2,6 +2,7 @@
 #include <ESP32NTPClock.h>
 
 SemaphoreHandle_t serialMutex = NULL;
+AppLogLevel g_appLogLevel = APP_LOG_INFO;
 GustavClockApp& app = GustavClockApp::getInstance();
 
 void setup() {

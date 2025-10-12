@@ -20,6 +20,7 @@ void DisplayManager::update() {
         _currentAnimation->update();
         if (_currentAnimation->isDone()) {
             _currentAnimation.reset();
+            _display.clear();
         }
     }
 

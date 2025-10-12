@@ -1,6 +1,8 @@
 #ifndef ESP32_NTP_CLOCK_H
 #define ESP32_NTP_CLOCK_H
 
+#include "display_manager.h"
+
 #include "i_animation.h"
 #include "i_display_driver.h"
 #include "i_base_clock.h"

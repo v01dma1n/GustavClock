@@ -9,42 +9,44 @@ class IAnimation {
 public:
     virtual ~IAnimation() {}
 
-    // Setup is called once when the animation starts
     virtual void setup(IDisplayDriver* display) {
         _display = display;
+        // Allocate the private buffer to match the display size
+        _buffer.assign(_display->getDisplaySize(), 0); 
     }
 
-    // Update is called on every loop iteration to draw the next frame
     virtual void update() = 0;
-
-    // Returns true if the animation has finished
     virtual bool isDone() = 0;
+
+    // New function to get the completed frame from the animation
+    const std::vector<unsigned long>& getFrame() const {
+        return _buffer;
+    }
 
 protected:
     IDisplayDriver* _display;
+    std::vector<unsigned long> _buffer; // The animation's private buffer
+
+    // This now writes to the animation's private buffer, not the display driver
+    void setChar(int position, char character, bool dot = false) {
+        if (position < 0 || position >= _buffer.size()) return;
+        _buffer[position] = _display->mapAsciiToSegment(character, dot);
+    }
 
     void parseTextAndDots(const std::string& inputText, bool dotsWithPrevious,
-                          std::string& outParsedText, std::vector<bool>& outDotStates) {
+                          std::string& outParsedText, std::vector<uint8_t>& outDotStates) {
         outParsedText.clear();
-        outDotStates.clear();
-        int displaySize = _display->getDisplaySize();
-
-        for (char c : inputText) {
-            if (c == '.' && dotsWithPrevious) {
-                if (!outDotStates.empty()) {
-                    outDotStates.back() = true; // Apply dot to the previous char
+        outDotStates.assign(inputText.length(), 0);
+        int write_idx = 0;
+        for (int read_idx = 0; read_idx < inputText.length(); ++read_idx) {
+            if (inputText[read_idx] == '.' && dotsWithPrevious) {
+                if (write_idx > 0) {
+                    outDotStates[write_idx - 1] = 1;
                 }
             } else {
-                outParsedText += c;
-                outDotStates.push_back(false);
+                outParsedText += inputText[read_idx];
+                write_idx++;
             }
-        }
-        // Ensure the parsed text and dot states are padded to the display size
-        while (outParsedText.length() < displaySize) {
-            outParsedText += ' ';
-        }
-        while (outDotStates.size() < displaySize) {
-            outDotStates.push_back(false);
         }
     }
 };

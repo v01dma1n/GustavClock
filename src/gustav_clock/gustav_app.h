@@ -1,7 +1,8 @@
 #ifndef GUSTAV_APP_H
 #define GUSTAV_APP_H
 
-#include <memory>
+#include "display_manager.h"
+
 #include "gustav_types.h"
 #include "gustav_access_point_manager.h"
 #include "gustav_weather_manager.h"
@@ -12,6 +13,10 @@
 #include <ESP32NTPClock_MAX6921.h> // Use the VFD driver
 #include <base_ntp_clock_app.h>
 #include <i_weather_clock.h>
+
+#include <memory>
+
+class DisplayManager;
 
 #define AP_HOST_NAME "gustav-clock"
 
@@ -29,6 +34,8 @@ public:
         static GustavClockApp instance;
         return instance;
     }
+    
+    ~GustavClockApp(); 
 
     void setup() override;
     void loop() override;
@@ -55,7 +62,7 @@ public:
     void activateAccessPoint() override;
     void formatTime(char *txt, unsigned int txt_size, const char *format, time_t now) override;
     IDisplayDriver& getDisplay() override { return _display; }
-    DisplayManager& getClock() override { return _displayManager; }
+    DisplayManager& getClock() override;
     RTC_DS1307& getRtc() override { return _rtc; }
     bool isRtcActive() const override { return _rtcActive; }
 
@@ -64,7 +71,7 @@ private:
 
     // VFD-specific hardware components
     DispDriverMAX6921 _display;
-    DisplayManager _displayManager;
+    std::unique_ptr<DisplayManager> _displayManager;
     RTC_DS1307 _rtc;
     bool _rtcActive;
 
