@@ -24,30 +24,27 @@ SlotMachineAnimation::~SlotMachineAnimation() {}
 void SlotMachineAnimation::setup(IDisplayDriver* display) {
     IAnimation::setup(display);
     
-    // --- FINAL FIX 1: Bypass the faulty parser ---
-    // This was the source of the "stuck" scene issue during testing.
     _parsedText = _targetText;
     _dotStates.assign(_targetText.length(), 0); 
-
-    _isLocked.assign(_display->getDisplaySize(), 0);
     
-    // Reset all state variables
+    // This state vector is no longer used by the simplified update()
+    _isLocked.assign(_display->getDisplaySize(), 0); 
+    
     _lastLockTime = millis();
     _lastSpinTime = millis();
     _lockedCount = 0;
     _lockingCompleteTime = 0;
     _finalFrameDrawn = false;
-    randomSeed(analogRead(0));
-
-    // Restore the initial "spinning" frame drawing.
+    
+    // The initial draw of spinning numbers remains the same.
     int displaySize = _display->getDisplaySize();
     for (int i = 0; i < displaySize; ++i) {
-        // _display->setChar(i, random(0, 10) + '0', false);
         _display->setChar(i, _rng.nextRange(0, 9) + '0', false);    
     }
 }
 
 bool SlotMachineAnimation::isDone() {
+    // This logic is identical to MatrixAnimation and is known to be stable.
     bool lockingComplete = _lockedCount >= _display->getDisplaySize();
     if (!lockingComplete) {
         return false;
@@ -55,56 +52,53 @@ bool SlotMachineAnimation::isDone() {
     return (millis() - _lockingCompleteTime >= _holdTime);
 }
 
-// --- FINAL FIX 2: Restore the original, fully functional update() function ---
+// --- SIMPLIFIED UPDATE FUNCTION ---
 void SlotMachineAnimation::update() {
-    if (_finalFrameDrawn) {
-        return;
-    }
-
-    int displaySize = _display->getDisplaySize();
-
     if (isDone()) {
-        for (int i = 0; i < displaySize; ++i) {
-            if (i < _parsedText.length()) {
-                _display->setChar(i, _parsedText[i], _dotStates[i]);
-            } else {
-                _display->setChar(i, ' ', false);
+        // Draw the final frame once when done.
+        if (!_finalFrameDrawn) {
+            int displaySize = _display->getDisplaySize();
+            for (int i = 0; i < displaySize; ++i) {
+                if (i < _parsedText.length()) {
+                    _display->setChar(i, _parsedText[i], _dotStates[i]);
+                } else {
+                    _display->setChar(i, ' ', false);
+                }
             }
+            _finalFrameDrawn = true;
         }
-        _finalFrameDrawn = true;
         return;
     }
 
     unsigned long currentTime = millis();
     if (currentTime - _lastSpinTime < _spinDelay) {
-        return;
+        return; // Control spin speed
     }
     _lastSpinTime = currentTime;
 
-    // --- State Update Logic ---
-    bool isLockingPhase = _lockedCount < displaySize;
-    if (isLockingPhase && (currentTime - _lastLockTime >= _lockDelay)) {
+    // --- Progression Logic (borrowed directly from MatrixAnimation) ---
+    int displaySize = _display->getDisplaySize();
+    bool revealPhaseActive = _lockedCount < displaySize;
+    if (revealPhaseActive && (currentTime - _lastLockTime >= _lockDelay)) {
         _lastLockTime = currentTime;
-        if (_lockedCount < _isLocked.size()) {
-            _isLocked[_lockedCount] = 1;
-            _lockedCount++;
-        }
-
+        _lockedCount++;
         if (_lockedCount == displaySize) {
             _lockingCompleteTime = millis();
         }
     }
 
-    // --- Drawing Logic ---
+    // --- Drawing Logic (borrowed directly from MatrixAnimation) ---
     for (int i = 0; i < displaySize; ++i) {
-        if (i < _isLocked.size() && _isLocked[i]) {
+        // REVEAL characters based on the counter, not the _isLocked vector.
+        if (i < _lockedCount) {
+            // This character is "revealed".
             if (i < _parsedText.length()) {
                 _display->setChar(i, _parsedText[i], _dotStates[i]);
             } else {
                 _display->setChar(i, ' ', false);
             }
         } else {
-            // _display->setChar(i, random(0, 10) + '0', false);
+            // This character is still "spinning".
             _display->setChar(i, _rng.nextRange(0, 9) + '0', false);    
         }
     }
