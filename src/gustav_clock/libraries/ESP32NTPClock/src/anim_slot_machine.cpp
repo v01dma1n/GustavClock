@@ -15,7 +15,8 @@ SlotMachineAnimation::SlotMachineAnimation(std::string targetText,
       _lastSpinTime(0),
       _lockedCount(0),
       _lockingCompleteTime(0),
-      _finalFrameDrawn(false)
+      _finalFrameDrawn(false),
+      _rng(millis())
 {}
 
 SlotMachineAnimation::~SlotMachineAnimation() {}
@@ -41,7 +42,8 @@ void SlotMachineAnimation::setup(IDisplayDriver* display) {
     // Restore the initial "spinning" frame drawing.
     int displaySize = _display->getDisplaySize();
     for (int i = 0; i < displaySize; ++i) {
-        _display->setChar(i, random(0, 10) + '0', false);
+        // _display->setChar(i, random(0, 10) + '0', false);
+        _display->setChar(i, _rng.nextRange(0, 9) + '0', false);    
     }
 }
 
@@ -102,7 +104,8 @@ void SlotMachineAnimation::update() {
                 _display->setChar(i, ' ', false);
             }
         } else {
-            _display->setChar(i, random(0, 10) + '0', false);
+            // _display->setChar(i, random(0, 10) + '0', false);
+            _display->setChar(i, _rng.nextRange(0, 9) + '0', false);    
         }
     }
 }

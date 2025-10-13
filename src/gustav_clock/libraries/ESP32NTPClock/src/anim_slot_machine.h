@@ -2,6 +2,7 @@
 #define ANIM_SLOT_MACHINE_H
 
 #include "i_animation.h"
+#include "fast_random.h"
 #include <string>
 #include <vector>
 
@@ -36,6 +37,8 @@ private:
     int _lockedCount;
     unsigned long _lockingCompleteTime;
     bool _finalFrameDrawn;
+
+    FastRandom _rng;
 };
 
 #endif // ANIM_SLOT_MACHINE_H
