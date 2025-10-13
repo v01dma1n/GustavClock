@@ -12,8 +12,9 @@ float GustavClockApp_getHumidityData() { return GustavClockApp::getInstance().ge
 // --- The application's specific scene playlist for the 12-digit VFD ---
 static const DisplayScene scenePlaylist[] = {
     { "Date",        "%b.%d %y",   SCROLLING,    true,  10000, 350,  0, GustavClockApp_getTimeData },
-    { "Time",        " %H-%M-%S",  MATRIX, false, 10000, 200, 50, GustavClockApp_getTimeData },
-    { "Time",        " %H-%M-%S",  SLOT_MACHINE, true, 10000, 200, 50, GustavClockApp_getTimeData }
+    { "Time",        " %H-%M-%S",  MATRIX,       false, 10000, 200, 50, GustavClockApp_getTimeData },
+    { "Date",        "%b.%d %y",   MATRIX, true,  10000, 350, 50, GustavClockApp_getTimeData },
+    { "Time",        " %H-%M-%S",  SLOT_MACHINE,       true,  10000, 200, 50, GustavClockApp_getTimeData }
     // { "Time",        " %H-%M-%S",  SCROLLING,    true, 10000, 200, 50, GustavClockApp_getTimeData }
     // { "Temperature", "TMP %3.0f C", MATRIX,       false,  7000, 250, 40, GustavClockApp_getTempData },
     // { "Time",        " %H-%M-%S",  SLOT_MACHINE, false, 10000, 200, 50, GustavClockApp_getTimeData },

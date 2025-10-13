@@ -24,7 +24,6 @@ void MatrixAnimation::setup(IDisplayDriver* display) {
     IAnimation::setup(display);
     int size = _display->getDisplaySize();
 
-    // Use the new, reliable parser from the base class
     parseTextAndDots(_targetText, _dotsWithPreviousChar, _parsedTargetText, _dotState);
     
     // Initialize rain positions
@@ -65,7 +64,6 @@ void MatrixAnimation::update() {
         }
     }
 
-    // <<< --- REPLACE THE ORIGINAL for(...) LOOP WITH THIS --- >>>
     for (int i = 0; i < displaySize; ++i) {
         if (i < _revealedCount) {
             // This character is revealed.
