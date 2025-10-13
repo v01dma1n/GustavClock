@@ -24,9 +24,8 @@ private:
     std::string _parsedText;
     std::vector<uint8_t> _dotStates;
     
-    // Use a standard, safe vector instead of a raw pointer to prevent memory corruption.
-    // Using uint8_t is more robust on embedded systems than the specialized vector<bool>.
     // std::vector<uint8_t> _isLocked;
+    // it looks like the std::vector did not beahve so it is replaced with std::list
     std::list<int> _lockedIndices;
 
     unsigned long _lockDelay;

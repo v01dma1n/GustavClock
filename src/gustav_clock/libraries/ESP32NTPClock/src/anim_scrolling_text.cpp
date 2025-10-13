@@ -21,7 +21,7 @@ void ScrollingTextAnimation::setup(IDisplayDriver* display) {
 bool ScrollingTextAnimation::isDone() {
     // The animation is done when the START of the text has scrolled
     // completely past the LEFT edge of the display.
-    return _currentPosition >= (int)_parsedText.length();
+    return _currentPosition > (int)_parsedText.length();
 }
 
 void ScrollingTextAnimation::update() {

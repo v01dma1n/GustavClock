@@ -29,7 +29,7 @@ void SceneManager::update() {
     // --- Dynamic buffer allocation based on actual display size ---
     const int displaySize = _app.getDisplay().getDisplaySize();
     // Use a vector for safe memory management. Add +1 for the null terminator.
-    std::vector<char> buffer(displaySize + 1);
+    std::vector<char> buffer(MAX_SCENE_TEXT_LEN);
 
     unsigned long currentTime = millis();
 
@@ -89,14 +89,6 @@ void SceneManager::update() {
             }
         }
 
-        // // --- TEMPORARY DEBUGGING ---
-        // // This will show the text statically for 2 seconds.
-        // ENC_LOG("Forcing StaticTextAnimation with text: '%s'", sceneText.c_str());
-        // auto anim = std::make_unique<StaticTextAnimation>(sceneText);
-        // _app.getClock().setAnimation(std::move(anim));
-        // // --- END TEMPORARY DEBUGGING ---
-
-        
         // --- Create and set the animation with the prepared text ---
         if (newScene.animation_type == SLOT_MACHINE) {
             auto anim = std::make_unique<SlotMachineAnimation>(sceneText, newScene.anim_param_1, 2000, newScene.anim_param_2, newScene.dots_with_previous);

@@ -1,0 +1,113 @@
+#include "anim_slot_machine.h"
+#include <Arduino.h>
+
+SlotMachineAnimation::SlotMachineAnimation(std::string targetText,
+                                           unsigned long lockDelay,
+                                           unsigned long holdTime,
+                                           unsigned long spinDelay,
+                                           bool dotsWithPreviousChar)
+    : _targetText(targetText),
+      _lockDelay(lockDelay),
+      _holdTime(holdTime),
+      _spinDelay(spinDelay),
+      _dotsWithPreviousChar(dotsWithPreviousChar),
+      _lastLockTime(0),
+      _lastSpinTime(0),
+      _lockedCount(0),
+      _lockingCompleteTime(0),
+      _finalFrameDrawn(false)
+{}
+
+SlotMachineAnimation::~SlotMachineAnimation() {}
+
+void SlotMachineAnimation::setup(IDisplayDriver* display) {
+    IAnimation::setup(display);
+    
+    // --- FINAL FIX: Bypass the faulty parser ---
+    // Manually initialize the text and dot states to avoid memory corruption.
+    // This was the source of the "stuck" scene issue.
+    _parsedText = _targetText;
+    _dotStates.assign(_targetText.length(), 0); 
+
+    _isLocked.assign(_display->getDisplaySize(), 0);
+    
+    // Reset all state variables
+    _lastLockTime = millis();
+    _lastSpinTime = millis();
+    _lockedCount = 0;
+    _lockingCompleteTime = 0;
+    _finalFrameDrawn = false;
+    randomSeed(analogRead(0));
+
+    // Restore the initial "spinning" frame drawing.
+    int displaySize = _display->getDisplaySize();
+    for (int i = 0; i < displaySize; ++i) {
+        _display->setChar(i, random(0, 10) + '0', false);
+    }
+}
+
+bool SlotMachineAnimation::isDone() {
+    bool lockingComplete = _lockedCount >= _display->getDisplaySize();
+    if (!lockingComplete) {
+        return false;
+    }
+    // Once locking is complete, the animation is done after the holdTime has passed.
+    return (millis() - _lockingCompleteTime >= _holdTime);
+}
+
+void SlotMachineAnimation::update() {
+    // If the final frame has been drawn, do nothing.
+    if (_finalFrameDrawn) {
+        return;
+    }
+
+    int displaySize = _display->getDisplaySize();
+
+    // If the animation's lifecycle is over, draw the final text one last time.
+    if (isDone()) {
+        for (int i = 0; i < displaySize; ++i) {
+            if (i < _parsedText.length()) {
+                _display->setChar(i, _parsedText[i], _dotStates[i]);
+            } else {
+                _display->setChar(i, ' ', false); // Pad with blanks if text is short
+            }
+        }
+        _finalFrameDrawn = true;
+        return;
+    }
+
+    unsigned long currentTime = millis();
+    if (currentTime - _lastSpinTime < _spinDelay) {
+        return; // Control the spin speed
+    }
+    _lastSpinTime = currentTime;
+
+    // --- State Update Logic ---
+    bool isLockingPhase = _lockedCount < displaySize;
+    if (isLockingPhase && (currentTime - _lastLockTime >= _lockDelay)) {
+        _lastLockTime = currentTime;
+        if (_lockedCount < _isLocked.size()) {
+            _isLocked[_lockedCount] = 1; // Lock the next digit
+            _lockedCount++;
+        }
+
+        if (_lockedCount == displaySize) {
+            _lockingCompleteTime = millis(); // Mark when locking finished
+        }
+    }
+
+    // --- Drawing Logic ---
+    for (int i = 0; i < displaySize; ++i) {
+        if (i < _isLocked.size() && _isLocked[i]) {
+            // This digit is locked, show the correct character.
+            if (i < _parsedText.length()) {
+                _display->setChar(i, _parsedText[i], _dotStates[i]);
+            } else {
+                _display->setChar(i, ' ', false);
+            }
+        } else {
+            // This digit is still spinning.
+            _display->setChar(i, random(0, 10) + '0', false);
+        }
+    }
+}
