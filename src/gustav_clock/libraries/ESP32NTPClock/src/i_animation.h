@@ -36,16 +36,20 @@ protected:
     void parseTextAndDots(const std::string& inputText, bool dotsWithPrevious,
                           std::string& outParsedText, std::vector<uint8_t>& outDotStates) {
         outParsedText.clear();
-        outDotStates.assign(inputText.length(), 0);
-        int write_idx = 0;
-        for (int read_idx = 0; read_idx < inputText.length(); ++read_idx) {
-            if (inputText[read_idx] == '.' && dotsWithPrevious) {
-                if (write_idx > 0) {
-                    outDotStates[write_idx - 1] = 1;
+        outDotStates.clear();
+
+        for (char c : inputText) {
+            if (c == '.' && dotsWithPrevious) {
+                // If a dot is found and we have text to attach it to,
+                // set the dot flag for the *previous* character.
+                if (!outDotStates.empty()) {
+                    outDotStates.back() = 1; // 1 means true
                 }
             } else {
-                outParsedText += inputText[read_idx];
-                write_idx++;
+                // This is a regular character, add it to the text
+                // and add a corresponding 'false' dot state.
+                outParsedText += c;
+                outDotStates.push_back(0); // 0 means false
             }
         }
     }

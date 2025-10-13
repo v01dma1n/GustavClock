@@ -18,19 +18,21 @@ SlotMachineAnimation::SlotMachineAnimation(std::string targetText,
       _finalFrameDrawn(false)
 {}
 
+// Destructor is empty because std::vector handles its own memory.
 SlotMachineAnimation::~SlotMachineAnimation() {}
 
 void SlotMachineAnimation::setup(IDisplayDriver* display) {
     IAnimation::setup(display);
-    
-    // --- FINAL FIX 1: Bypass the faulty parser ---
-    // This was the source of the "stuck" scene issue during testing.
-    _parsedText = _targetText;
-    _dotStates.assign(_targetText.length(), 0); 
 
+    // There seem to be something weird going on with this parser
+    // parseTextAndDots(_targetText, _dotsWithPreviousChar, _parsedText, _dotStates);
+    _parsedText = _targetText;
+    //  _dotStates.assign(_parsedText.length(), _dotsWithPreviousChar);
+    _dotStates.assign(_targetText.length(), 0);
     _isLocked.assign(_display->getDisplaySize(), 0);
     
-    // Reset all state variables
+    // Reset all state variables to ensure the animation can be run multiple times
+
     _lastLockTime = millis();
     _lastSpinTime = millis();
     _lockedCount = 0;
@@ -38,9 +40,10 @@ void SlotMachineAnimation::setup(IDisplayDriver* display) {
     _finalFrameDrawn = false;
     randomSeed(analogRead(0));
 
-    // Restore the initial "spinning" frame drawing.
+    // Draw the initial "spinning" frame immediately in setup to prevent a blank display.
     int displaySize = _display->getDisplaySize();
     for (int i = 0; i < displaySize; ++i) {
+        // All digits start as "spinning" (random numbers)
         _display->setChar(i, random(0, 10) + '0', false);
     }
 }
@@ -50,32 +53,36 @@ bool SlotMachineAnimation::isDone() {
     if (!lockingComplete) {
         return false;
     }
+    // Once locking is complete, the animation is done after the holdTime has passed.
     return (millis() - _lockingCompleteTime >= _holdTime);
 }
 
-// --- FINAL FIX 2: Restore the original, fully functional update() function ---
 void SlotMachineAnimation::update() {
+    // If the final frame has been drawn, do nothing.
     if (_finalFrameDrawn) {
         return;
     }
 
     int displaySize = _display->getDisplaySize();
 
+    // If the animation's lifecycle is over, draw the final text one last time.
     if (isDone()) {
+        // Draw the final, correct text one last time before exiting.
         for (int i = 0; i < displaySize; ++i) {
             if (i < _parsedText.length()) {
-                _display->setChar(i, _parsedText[i], _dotStates[i]);
+            _display->setChar(i, _parsedText[i], _dotStates[i]);
             } else {
-                _display->setChar(i, ' ', false);
+                _display->setChar(i, ' ', false); // Pad with blanks if text is short
             }
         }
+        // Set this flag to true AFTER drawing. This ensures this block runs once.
         _finalFrameDrawn = true;
         return;
     }
 
     unsigned long currentTime = millis();
     if (currentTime - _lastSpinTime < _spinDelay) {
-        return;
+        return; // Control the spin speed
     }
     _lastSpinTime = currentTime;
 
@@ -84,24 +91,26 @@ void SlotMachineAnimation::update() {
     if (isLockingPhase && (currentTime - _lastLockTime >= _lockDelay)) {
         _lastLockTime = currentTime;
         if (_lockedCount < _isLocked.size()) {
-            _isLocked[_lockedCount] = 1;
+            _isLocked[_lockedCount] = 1; // Lock the next digit
             _lockedCount++;
         }
 
         if (_lockedCount == displaySize) {
-            _lockingCompleteTime = millis();
+            _lockingCompleteTime = millis(); // Mark when locking finished
         }
     }
 
-    // --- Drawing Logic ---
+    // --- Atomic Drawing Logic (redraw every digit, every frame) ---
     for (int i = 0; i < displaySize; ++i) {
         if (i < _isLocked.size() && _isLocked[i]) {
+            // This digit is locked, show the correct character.
             if (i < _parsedText.length()) {
-                _display->setChar(i, _parsedText[i], _dotStates[i]);
+            _display->setChar(i, _parsedText[i], _dotStates[i]);
             } else {
                 _display->setChar(i, ' ', false);
             }
         } else {
+            // This digit is still spinning.
             _display->setChar(i, random(0, 10) + '0', false);
         }
     }
