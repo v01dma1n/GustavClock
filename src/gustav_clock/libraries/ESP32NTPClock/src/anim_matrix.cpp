@@ -9,15 +9,13 @@
 #define SEG_F 0b00100000
 #define SEG_G 0b01000000
 
-MatrixAnimation::MatrixAnimation(std::string targetText, unsigned long revealDelay, unsigned long holdTime, unsigned long rainDelay, bool dotsWithPreviousChar)
+MatrixAnimation::MatrixAnimation(std::string targetText, unsigned long revealDelay, unsigned long rainDelay, bool dotsWithPreviousChar)
     : _targetText(targetText),
       _dotsWithPreviousChar(dotsWithPreviousChar),
       _revealDelay(revealDelay),
-      _holdTime(holdTime),
       _rainDelay(rainDelay),
       _lastRainTime(0),
       _lastRevealTime(0),
-      _revealCompleteTime(0),
       _revealedCount(0) {}
 
 void MatrixAnimation::setup(IDisplayDriver* display) {
@@ -36,11 +34,8 @@ void MatrixAnimation::setup(IDisplayDriver* display) {
 }
 
 bool MatrixAnimation::isDone() {
-    bool revealComplete = _revealedCount >= _display->getDisplaySize();
-    if (!revealComplete) {
-        return false;
-    }
-    return (millis() - _revealCompleteTime >= _holdTime);
+    // The animation is done as soon as the reveal is complete 
+    return _revealedCount >= _display->getDisplaySize();
 }
 
 void MatrixAnimation::update() {
@@ -49,33 +44,25 @@ void MatrixAnimation::update() {
         return; // Control frame rate
     }
     _lastRainTime = currentTime;
-    if (isDone()) {
-        return;
-    }
 
     int displaySize = _display->getDisplaySize();
     // --- Reveal Logic: Reveal one character at a time ---
-    bool revealPhaseActive = _revealedCount < displaySize;
-    if (revealPhaseActive && (currentTime - _lastRevealTime >= _revealDelay)) {
+    if (!isDone() && (currentTime - _lastRevealTime >= _revealDelay)) {
         _lastRevealTime = currentTime;
         _revealedCount++;
-        if (_revealedCount == displaySize) {
-            _revealCompleteTime = millis();
-        }
     }
 
-    for (int i = 0; i < displaySize; ++i) {
+      for (int i = 0; i < displaySize; ++i) {
         if (i < _revealedCount) {
             // This character is revealed.
-            // ADD BOUNDS CHECKING to prevent heap corruption.
             if (i < _parsedTargetText.length()) {
                 _display->setChar(i, _parsedTargetText[i], _dotState[i]);
             } else {
-                // If text is shorter than display, pad with blanks.
                 _display->setChar(i, ' ', false);
             }
         } else {
             // This character is not yet revealed, show rain animation
+            // ... (rain drawing logic remains unchanged) ...
             uint16_t fallingMask = 0;
             _rainPos[i][0] += 0.1f;
             if (_rainPos[i][0] >= 2.0f) _rainPos[i][0] -= 2.0f;

@@ -6,7 +6,11 @@
 #include "anim_matrix.h"
 #include "anim_scrolling_text.h"
 
-SceneManager::SceneManager(IBaseClock& clock) : _app(clock), _lastLiveUpdateTime(0) {}
+SceneManager::SceneManager(IBaseClock& clock) : 
+    _app(clock),
+     _lastLiveUpdateTime(0), 
+     _wasAnimationRunning(false) 
+{}
 
 void SceneManager::setup(const DisplayScene* playlist, int numScenes) {
     _scenePlaylist = playlist;
@@ -23,6 +27,36 @@ void SceneManager::update() {
     }
  
     if (_app.getClock().isAnimationRunning()) {
+        return;
+    }
+
+    // Get the current state of the animation
+    bool isCurrentlyRunning = _app.getClock().isAnimationRunning();
+
+    // --- Check if an animation has JUST finished ---
+    // This detects the transition from a running to a non-running state.
+    if (_wasAnimationRunning && !isCurrentlyRunning) {
+        // An animation just completed. Refresh the display immediately
+        // if it's a live update scene to prevent showing stale data.
+        if (_currentSceneIndex >= 0) {
+            const DisplayScene& currentScene = _scenePlaylist[_currentSceneIndex];
+            if (currentScene.isLiveUpdate) {
+                std::vector<char> buffer(MAX_SCENE_TEXT_LEN);
+                time_t now = _app.isRtcActive() ? _app.getRtc().now().unixtime() : time(0);
+                _app.formatTime(buffer.data(), buffer.size(), currentScene.format_string, now);
+                _app.getDisplay().print(buffer.data(), currentScene.dots_with_previous);
+                
+                // Reset the throttle timer to prevent an immediate double-update
+                _lastLiveUpdateTime = millis(); 
+            }
+        }  
+    }  
+
+    // Update the state for the next loop cycle
+    _wasAnimationRunning = isCurrentlyRunning;
+
+    // If an animation is still running, there's nothing else to do
+    if (isCurrentlyRunning) {
         return;
     }
 
@@ -89,10 +123,10 @@ void SceneManager::update() {
 
         // --- Create and set the animation with the prepared text ---
         if (newScene.animation_type == SLOT_MACHINE) {
-            auto anim = std::make_unique<SlotMachineAnimation>(sceneText, newScene.anim_param_1, 2000, newScene.anim_param_2, newScene.dots_with_previous);
+            auto anim = std::make_unique<SlotMachineAnimation>(sceneText, newScene.anim_param_1, newScene.anim_param_2, newScene.dots_with_previous);
             _app.getClock().setAnimation(std::move(anim));
         } else if (newScene.animation_type == MATRIX) {
-            auto anim = std::make_unique<MatrixAnimation>(sceneText, newScene.anim_param_1, 2000, newScene.anim_param_2, newScene.dots_with_previous);
+            auto anim = std::make_unique<MatrixAnimation>(sceneText, newScene.anim_param_1, newScene.anim_param_2, newScene.dots_with_previous);
             _app.getClock().setAnimation(std::move(anim));
         } else if (newScene.animation_type == SCROLLING) {
             auto anim = std::make_unique<ScrollingTextAnimation>(sceneText, newScene.anim_param_1, newScene.dots_with_previous);

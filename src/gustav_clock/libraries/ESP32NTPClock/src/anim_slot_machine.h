@@ -11,7 +11,6 @@ class SlotMachineAnimation : public IAnimation {
 public:
     SlotMachineAnimation(std::string targetText, 
                          unsigned long lockDelay = 200, 
-                         unsigned long holdTime = 3000, 
                          unsigned long spinDelay = 50,
                          bool dotsWithPreviousChar = false);
     ~SlotMachineAnimation();
@@ -29,14 +28,12 @@ private:
     std::list<int> _lockedIndices;
 
     unsigned long _lockDelay;
-    unsigned long _holdTime;
     unsigned long _spinDelay;
     bool _dotsWithPreviousChar;
 
     unsigned long _lastLockTime;
     unsigned long _lastSpinTime;
     int _lockedCount;
-    unsigned long _lockingCompleteTime;
     bool _finalFrameDrawn;
 
     FastRandom _rng;

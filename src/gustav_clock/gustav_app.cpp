@@ -17,7 +17,7 @@ static const DisplayScene scenePlaylist[] = {
     { "Time",        " %H-%M-%S",    SLOT_MACHINE,  false, true,  10000, 200, 50, GustavClockApp_getTimeData },
     { "Temperature", "TMP %3.0f C",  MATRIX,        false, false,  7000, 250, 40, GustavClockApp_getTempData },
     { "Time",        " %H-%M-%S",    SLOT_MACHINE,  false, true,  10000, 200, 50, GustavClockApp_getTimeData },
-    { "Humidity",    "HUM %3.0f %%", MATRIX,        false, false,  7000, 250, 40, GustavClockApp_getHumidityData }
+    { "Humidity",    "HUM %3.0f PCT", MATRIX,        false, false,  7000, 250, 40, GustavClockApp_getHumidityData }
 };
 static const int numScenes = sizeof(scenePlaylist) / sizeof(DisplayScene);
 

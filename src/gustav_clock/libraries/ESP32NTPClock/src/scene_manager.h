@@ -24,7 +24,7 @@ private:
     int _currentSceneIndex;
     unsigned long _sceneStartTime;
     unsigned long _lastLiveUpdateTime;
-
+    bool _wasAnimationRunning;
 };
 
 #endif // SCENE_MANAGER_H
