@@ -5,25 +5,28 @@ SemaphoreHandle_t serialMutex = NULL;
 AppLogLevel g_appLogLevel = APP_LOG_INFO;
 GustavClockApp& app = GustavClockApp::getInstance();
 
-// Queue to signal the display task
-QueueHandle_t displayTriggerQueue;
+// The displayTriggerQueue is now REMOVED.
 
 /**
  * @brief High-priority task to handle display multiplexing.
  *
- * This task is the *only* thing that calls the blocking writeDisplay()
- * function. It waits indefinitely for a trigger from the DisplayManager.
+ * This task is now a free-running, non-blocking multiplexer.
+ * It continuously reads the driver's internal buffer and sends
+ * one digit at a time to the display.
  */
 void displayTask(void *pvParameters) {
-  int dummy; // We just need a signal, the data doesn't matter
   GustavClockApp& app_ref = GustavClockApp::getInstance();
 
   for (;;) {
-    // Wait indefinitely for a trigger
-    if (xQueueReceive(displayTriggerQueue, &dummy, portMAX_DELAY)) {
-      // Once triggered, call the app's blocking display function
-      app_ref.getDisplay().writeDisplay();
-    }
+    // 1. Call the non-blocking function to display the next digit.
+    //    This function reads from the driver's internal buffer.
+    app_ref.getDisplay().writeNextDigit();
+
+    // 2. This is the non-blocking delay.
+    //    It yields the CPU, allowing other tasks to run.
+    //    A 2ms delay for 10 digits gives a ~20ms total refresh,
+    //    or a 50Hz refresh rate.
+    vTaskDelay(pdMS_TO_TICKS(2));
   }
 }
 
@@ -38,18 +41,7 @@ void setup() {
   
   serialMutex = xSemaphoreCreateMutex();
 
-  // Create the trigger queue
-  displayTriggerQueue = xQueueCreate(
-    1,          // Queue depth of 1 (acts as a "mailbox")
-    sizeof(int) // Simple integer trigger
-  );
-
-  if (displayTriggerQueue == NULL) {
-    Serial.println("Error creating the display trigger queue");
-    while (1); // Halt
-  }
-
-  // Run the original application setup
+  // Run the application setup
   app.setup();
 
   // Create the high-priority display task on Core 1
@@ -66,7 +58,5 @@ void setup() {
 }
 
 void loop() {
-  // This remains unchanged. The app.loop() contains the FSM,
-  // SceneManager, and DisplayManager updates.
   app.loop();
 }
