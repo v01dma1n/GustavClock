@@ -2,7 +2,11 @@
 #include "display_manager.h"
 #include "debug.h"
 #include "version.h"             
+#include "default_7seg_font.h" 
+#include "vfd_hardware_map.h"
+
 #include <Wire.h> 
+#include <WiFi.h> 
 
 // --- Data getters for the scene playlist ---u
 float GustavClockApp_getTimeData() { return 0; }
@@ -15,16 +19,18 @@ static const DisplayScene scenePlaylist[] = {
     { "Time",        " %H-%M-%S",    SLOT_MACHINE,  false, true,  10000, 200, 50, GustavClockApp_getTimeData },
     { "Date",        "%b.%d %Y",     MATRIX,        true,  false, 10000, 350, 50, GustavClockApp_getTimeData },
     { "Time",        " %H-%M-%S",    SLOT_MACHINE,  false, true,  10000, 200, 50, GustavClockApp_getTimeData },
-    { "Temperature", "TMP %3.0f C",  MATRIX,        false, false,  7000, 250, 40, GustavClockApp_getTempData },
+    { "Temperature", "T %3.0f F",     MATRIX,        false, false,  7000, 250, 40, GustavClockApp_getTempData },
     { "Time",        " %H-%M-%S",    SLOT_MACHINE,  false, true,  10000, 200, 50, GustavClockApp_getTimeData },
-    { "Humidity",    "HUM %2.0f PCT", MATRIX,        false, false,  7000, 250, 40, GustavClockApp_getHumidityData }
+    { "Humidity",    "H %2.0f PCT",   MATRIX,        false, false,  7000, 250, 40, GustavClockApp_getHumidityData }
 };
 static const int numScenes = sizeof(scenePlaylist) / sizeof(DisplayScene);
+
+static Default7SegFont s_vfd_font;
 
 // --- Constructor ---
 GustavClockApp::GustavClockApp() :
     // Initialize the VFD driver with display size and SPI pins
-    _display(DISP_LEN),
+    _display(DISP_LEN, s_vfd_font, s_vfd_segment_map),
     _appPrefs(),
     _apManager(_appPrefs)
 {
@@ -81,7 +87,11 @@ void GustavClockApp::activateAccessPoint() {
     _apManager.setup(getAppName());
     String waitingMsgStr = "SETUP MODE -- WIFI ";
     waitingMsgStr += getAppName();
-    _apManager.runBlockingLoop(*_displayManager, waitingMsgStr.c_str(), "CONNECTED - SETUP AT 192.168.4.1");
+    
+    String connectedMsgStr = "CONNECT AT ";
+    connectedMsgStr += WiFi.softAPIP().toString();
+    
+    _apManager.runBlockingLoop(*_displayManager, waitingMsgStr.c_str(), connectedMsgStr.c_str());
 }
 
 float GustavClockApp::getTempData() { 

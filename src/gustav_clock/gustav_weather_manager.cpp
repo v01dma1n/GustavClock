@@ -17,7 +17,7 @@ void GustavWeatherDataManager::update() {
 
     if (timeToFetch) {
         _lastWeatherFetchTime = millis();
-        const char* apiKey = _app.getOwmApiKey();
+        const char* apiKey = _app.getOwmApiKey(); 
         if (apiKey == nullptr || strlen(apiKey) == 0) {
             LOGINF("OpenWeatherMap API key is not configured. Skipping fetch.");
             return;
