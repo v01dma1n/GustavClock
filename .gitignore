@@ -5,4 +5,5 @@
 *.sh
 *.ini
 *.checksum
-
+.pio/
+.vscode/
