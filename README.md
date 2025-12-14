@@ -1,6 +1,6 @@
 # "Bare Soul of My Circuit" aka. Gustav VFD Clock
 
-A 12-digit VFD (Vacuum Fluorescent Display) clock based on the ESP32. It features automatic NTP time synchronization, weather display from OpenWeatherMap, and a web-based configuration portal. This project is built using the `ESP32NTPClock` library framework.
+A 10-digit VFD (Vacuum Fluorescent Display) clock based on the ESP32. It features automatic NTP time synchronization, weather display from OpenWeatherMap, and a web-based configuration portal. This project is built using the `ESP32NTPClock` library framework.
 <p align="center">
     <img src="photos/GustavClock.jpg" alt="Bubble LED Clock" width="500" style="margin: 0 auto; display: block;">
 </p>
